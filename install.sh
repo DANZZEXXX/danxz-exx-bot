@@ -50,6 +50,57 @@ BG_BRIGHT_BLUE='\033[104m'
 BG_BRIGHT_MAGENTA='\033[105m'
 BG_BRIGHT_CYAN='\033[106m'
 BG_BRIGHT_WHITE='\033[107m'
+login_system() {
+    clear
+    echo -e ""
+    echo -e "${BOLD}${BLUE}[+] =============================================== [+]${NC}"
+    echo -e "${BOLD}${BLUE}[+]               LOGIN REQUIRED                    [+]${NC}"
+    echo -e "${BOLD}${BLUE}[+] =============================================== [+]${NC}"
+    echo -e ""
+    echo -e "${BOLD}${YELLOW}══════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}${CYAN}          ██████╗  █████╗ ███╗   ██╗███████╗${NC}"
+    echo -e "${BOLD}${CYAN}          ██╔══██╗██╔══██╗████╗  ██║╚══███╔╝${NC}"
+    echo -e "${BOLD}${CYAN}          ██║  ██║███████║██╔██╗ ██║  ███╔╝ ${NC}"
+    echo -e "${BOLD}${CYAN}          ██║  ██║██╔══██║██║╚██╗██║ ███╔╝  ${NC}"
+    echo -e "${BOLD}${CYAN}          ██████╔╝██║  ██║██║ ╚████║███████╗${NC}"
+    echo -e "${BOLD}${CYAN}          ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝${NC}"
+    echo -e "${BOLD}${YELLOW}══════════════════════════════════════════════════${NC}"
+    echo -e ""
+    echo -e "${BOLD}${WHITE}                 INSTALLER PTERODACTYL${NC}"
+    echo -e "${BOLD}${WHITE}                    BY @DanZ_Mbudd${NC}"
+    echo -e ""
+    echo -e "${BOLD}${YELLOW}══════════════════════════════════════════════════${NC}"
+    echo -e ""
+
+    local attempt=1
+    local max_attempts=3
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo -n -e "${BOLD}${CYAN}🔑 PASSWORD: ${NC}"
+        read -s input_pass
+        echo ""
+        
+        if [ -z "$input_pass" ]; then
+            echo -e "${BOLD}${RED}[✗] Password tidak boleh kosong!${NC}\n"
+            attempt=$((attempt + 1))
+            sleep 1
+            continue
+        fi
+        
+        if [ "$input_pass" = "DANZGACOR" ]; then
+            echo -e "\n${BOLD}${GREEN}[✓] LOGIN BERHASIL! Selamat datang, Admin${NC}"
+            sleep 1
+            return 0
+        else
+            echo -e "\n${BOLD}${RED}[✗] LOGIN GAGAL! Percobaan $attempt dari $max_attempts${NC}\n"
+            attempt=$((attempt + 1))
+            sleep 1
+        fi
+    done
+    
+    echo -e "${BOLD}${RED}[!] TERLALU BANYAK PERCOBAAN GAGAL! KELUAR...${NC}"
+    exit 1
+}
 
 print_info() {
   echo -e "\n  ${BG_BLUE}${BRIGHT_WHITE}${BOLD} INFO ${NC} ${BOLD}$1${NC}\n"
