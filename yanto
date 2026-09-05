@@ -8,25 +8,24 @@
 #define JOY_L_SW 26
 
 // ==========================================
-// PIN JOYSTICK KANAN (Gerak Layar & Klik)
+// PIN JOYSTICK KANAN (Kamera Roblox & Klik)
 // ==========================================
 #define JOY_R_X  34
 #define JOY_R_Y  35
 #define JOY_R_SW 25
 
-// Variable status tombol (mencegah spam sinyal)
+// Variable status tombol (mencegah spam sinyal BLE)
 bool isW = false, isS = false, isA = false, isD = false;
 bool lastLeftBtn  = HIGH;
 bool lastRightBtn = HIGH;
+bool isRightClickHolding = false; // Status tahan klik kanan kamera
 
 void setup() {
   Serial.begin(115200);
 
-  // Gunakan internal pull-up untuk tombol joystick
   pinMode(JOY_L_SW, INPUT_PULLUP);
   pinMode(JOY_R_SW, INPUT_PULLUP);
 
-  // Inisialisasi Bluetooth Combo (Keyboard + Mouse)
   Keyboard.begin();
   Mouse.begin();
 }
@@ -64,7 +63,7 @@ void loop() {
 
 
     // ==========================================
-    // 2. JOYSTICK KANAN -> GERAK LAYAR / KAMERA (MOUSE)
+    // 2. JOYSTICK KANAN -> ROTASI LAYAR ROBLOX (TAHAN KLIK KANAN + GESER)
     // ==========================================
     int xRight = analogRead(JOY_R_X);
     int yRight = analogRead(JOY_R_Y);
@@ -72,23 +71,36 @@ void loop() {
     int moveX = 0;
     int moveY = 0;
 
-    // Mengubah gerakan joystick kanan menjadi pergerakan kursor/layar
     if (abs(xRight - centerVal) > deadzone) {
-      moveX = map(xRight, 0, 4095, -12, 12);
+      moveX = map(xRight, 0, 4095, -15, 15); // Sensitivitas geser X
     }
     if (abs(yRight - centerVal) > deadzone) {
-      moveY = map(yRight, 0, 4095, -12, 12);
+      moveY = map(yRight, 0, 4095, -15, 15); // Sensitivitas geser Y
     }
 
+    // Jika joystick kanan digerakkan dari titik tengah
     if (moveX != 0 || moveY != 0) {
-      Mouse.move(moveX, moveY);
+      if (!isRightClickHolding) {
+        Mouse.press(MOUSE_RIGHT); // TAHAN KLIK KANAN
+        isRightClickHolding = true;
+      }
+      Mouse.move(moveX, moveY); // GESER MOUSE
+    } else {
+      // Jika joystick dilepas balik ke tengah, lepas klik kanan
+      if (isRightClickHolding) {
+        Mouse.release(MOUSE_RIGHT); // LEPAS KLIK KANAN
+        isRightClickHolding = false;
+      }
     }
 
-    // Tombol Joystick Kanan -> Klik Kiri Mouse
+    // ==========================================
+    // 3. TOMBOL JOYSTICK KANAN (PIN 25) -> KLIK KIRI MOUSE
+    // ==========================================
     bool rightBtnState = digitalRead(JOY_R_SW);
     if (lastRightBtn == HIGH && rightBtnState == LOW) {
-      Mouse.click(MOUSE_LEFT);
-      delay(100);
+      Mouse.press(MOUSE_LEFT);
+      delay(50);
+      Mouse.release(MOUSE_LEFT);
     }
     lastRightBtn = rightBtnState;
 
