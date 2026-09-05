@@ -1,22 +1,30 @@
 #include <BleCombo.h>
 
-// Pin Joystick & Tombol Mode
-#define JOY_X 34
-#define JOY_Y 35
-#define JOY_SW 25
-#define MODE_BTN 27 // Pin Pushbutton Mode (ke GND)
+// ==========================================
+// PIN JOYSTICK KIRI (Jalan WASD & Lompat)
+// ==========================================
+#define JOY_L_X  32
+#define JOY_L_Y  33
+#define JOY_L_SW 26
 
-bool isMouseMode = false;
+// ==========================================
+// PIN JOYSTICK KANAN (Gerak Layar & Klik)
+// ==========================================
+#define JOY_R_X  34
+#define JOY_R_Y  35
+#define JOY_R_SW 25
 
-// Status tombol (mencegah spam BLE)
+// Variable status tombol (mencegah spam sinyal)
 bool isW = false, isS = false, isA = false, isD = false;
-bool lastJoyBtn = HIGH;
-bool lastModeBtn = HIGH;
+bool lastLeftBtn  = HIGH;
+bool lastRightBtn = HIGH;
 
 void setup() {
   Serial.begin(115200);
-  pinMode(JOY_SW, INPUT_PULLUP);
-  pinMode(MODE_BTN, INPUT_PULLUP);
+
+  // Gunakan internal pull-up untuk tombol joystick
+  pinMode(JOY_L_SW, INPUT_PULLUP);
+  pinMode(JOY_R_SW, INPUT_PULLUP);
 
   // Inisialisasi Bluetooth Combo (Keyboard + Mouse)
   Keyboard.begin();
@@ -26,84 +34,63 @@ void setup() {
 void loop() {
   if (Keyboard.isConnected()) {
 
-    // ==========================================
-    // TOGGLE MODE (Bila Pushbutton Mode Ditekan)
-    // ==========================================
-    bool modeBtnState = digitalRead(MODE_BTN);
-    if (lastModeBtn == HIGH && modeBtnState == LOW) {
-      isMouseMode = !isMouseMode; // Berpindah mode
+    int centerVal = 2048;
+    int deadzone  = 800;
 
-      // Lepas semua tombol jika pindah ke mode kursor
-      if (isMouseMode) {
-        Keyboard.releaseAll();
-        isW = isS = isA = isD = false;
-        Serial.println("Mode Aktif: KURSOR MOUSE");
-      } else {
-        Serial.println("Mode Aktif: NORMAL (WASD)");
-      }
-      delay(200); // Debounce tombol
+    // ==========================================
+    // 1. JOYSTICK KIRI -> GERAK JALAN (WASD)
+    // ==========================================
+    int xLeft = analogRead(JOY_L_X);
+    int yLeft = analogRead(JOY_L_Y);
+
+    bool wantW = (yLeft < centerVal - deadzone);
+    bool wantS = (yLeft > centerVal + deadzone);
+    bool wantA = (xLeft < centerVal - deadzone);
+    bool wantD = (xLeft > centerVal + deadzone);
+
+    if (wantW != isW) { if (wantW) Keyboard.press('w'); else Keyboard.release('w'); isW = wantW; }
+    if (wantS != isS) { if (wantS) Keyboard.press('s'); else Keyboard.release('s'); isS = wantS; }
+    if (wantA != isA) { if (wantA) Keyboard.press('a'); else Keyboard.release('a'); isA = wantA; }
+    if (wantD != isD) { if (wantD) Keyboard.press('d'); else Keyboard.release('d'); isD = wantD; }
+
+    // Tombol Joystick Kiri -> Lompat (Spasi)
+    bool leftBtnState = digitalRead(JOY_L_SW);
+    if (lastLeftBtn == HIGH && leftBtnState == LOW) {
+      Keyboard.press(' ');
+      delay(50);
+      Keyboard.release(' ');
     }
-    lastModeBtn = modeBtnState;
+    lastLeftBtn = leftBtnState;
 
-    // Baca Nilai Analog Joystick
-    int xVal = analogRead(JOY_X);
-    int yVal = analogRead(JOY_Y);
-
-    int centerX = 2048;
-    int centerY = 2048;
-    int deadzone = 800;
 
     // ==========================================
-    // 1. MODE KURSOR (MOUSE)
+    // 2. JOYSTICK KANAN -> GERAK LAYAR / KAMERA (MOUSE)
     // ==========================================
-    if (isMouseMode) {
-      int moveX = 0;
-      int moveY = 0;
+    int xRight = analogRead(JOY_R_X);
+    int yRight = analogRead(JOY_R_Y);
 
-      // Gerakan Kursor Halus
-      if (abs(xVal - centerX) > deadzone) {
-        moveX = map(xVal, 0, 4095, -8, 8);
-      }
-      if (abs(yVal - centerY) > deadzone) {
-        moveY = map(yVal, 0, 4095, -8, 8);
-      }
+    int moveX = 0;
+    int moveY = 0;
 
-      if (moveX != 0 || moveY != 0) {
-        Mouse.move(moveX, moveY);
-      }
-
-      // Tombol Joystick berfungsi sebagai Klik Kiri
-      bool joyBtnState = digitalRead(JOY_SW);
-      if (lastJoyBtn == HIGH && joyBtnState == LOW) {
-        Mouse.click(MOUSE_LEFT);
-        delay(100);
-      }
-      lastJoyBtn = joyBtnState;
-    } 
-
-    // ==========================================
-    // 2. MODE NORMAL (WASD)
-    // ==========================================
-    else {
-      bool wantW = (yVal < centerY - deadzone);
-      bool wantS = (yVal > centerY + deadzone);
-      bool wantA = (xVal < centerX - deadzone);
-      bool wantD = (xVal > centerX + deadzone);
-
-      if (wantW != isW) { if (wantW) Keyboard.press('w'); else Keyboard.release('w'); isW = wantW; }
-      if (wantS != isS) { if (wantS) Keyboard.press('s'); else Keyboard.release('s'); isS = wantS; }
-      if (wantA != isA) { if (wantA) Keyboard.press('a'); else Keyboard.release('a'); isA = wantA; }
-      if (wantD != isD) { if (wantD) Keyboard.press('d'); else Keyboard.release('d'); isD = wantD; }
-
-      // Tombol Joystick berfungsi sebagai Lompat (Spasi)
-      bool joyBtnState = digitalRead(JOY_SW);
-      if (lastJoyBtn == HIGH && joyBtnState == LOW) {
-        Keyboard.press(' ');
-        delay(50);
-        Keyboard.release(' ');
-      }
-      lastJoyBtn = joyBtnState;
+    // Mengubah gerakan joystick kanan menjadi pergerakan kursor/layar
+    if (abs(xRight - centerVal) > deadzone) {
+      moveX = map(xRight, 0, 4095, -12, 12);
     }
+    if (abs(yRight - centerVal) > deadzone) {
+      moveY = map(yRight, 0, 4095, -12, 12);
+    }
+
+    if (moveX != 0 || moveY != 0) {
+      Mouse.move(moveX, moveY);
+    }
+
+    // Tombol Joystick Kanan -> Klik Kiri Mouse
+    bool rightBtnState = digitalRead(JOY_R_SW);
+    if (lastRightBtn == HIGH && rightBtnState == LOW) {
+      Mouse.click(MOUSE_LEFT);
+      delay(100);
+    }
+    lastRightBtn = rightBtnState;
 
     delay(15);
   } else {
