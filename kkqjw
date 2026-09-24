@@ -1,0 +1,75 @@
+#include "BluetoothSerial.h"
+
+// Inisialisasi Bluetooth Serial Bawaan ESP32
+BluetoothSerial SerialBT;
+
+// Pin Joystick Analog
+const int PIN_JOY_X  = 32;
+const int PIN_JOY_Y  = 33;
+const int PIN_JOY_SW = 25; // Tombol Klik Joystick (Spasi / Lompat)
+
+// Pin 4 Push Button
+const int PIN_BTN_1 = 26; // Tombol '1'
+const int PIN_BTN_Q = 27; // Tombol 'q'
+const int PIN_BTN_E = 14; // Tombol 'e'
+const int PIN_BTN_F = 12; // Tombol 'f'
+
+unsigned long lastSendTime = 0;
+const int sendInterval = 30; // Jeda pengiriman data (ms)
+
+void setup() {
+  Serial.begin(115200);
+
+  // Nyalakan Bluetooth Internal ESP32 dengan nama "ESP32_Remote_BT"
+  SerialBT.begin("ESP32_Remote_BT");
+
+  // Konfigurasi Input PULL-UP (Langsung hubungkan tombol ke GND)
+  pinMode(PIN_JOY_SW, INPUT_PULLUP);
+  pinMode(PIN_BTN_1, INPUT_PULLUP);
+  pinMode(PIN_BTN_Q, INPUT_PULLUP);
+  pinMode(PIN_BTN_E, INPUT_PULLUP);
+  pinMode(PIN_BTN_F, INPUT_PULLUP);
+
+  Serial.println("Bluetooth Internal ESP32 Siap! Tinggal Pairing di HP/PC.");
+}
+
+void loop() {
+  if (millis() - lastSendTime >= sendInterval) {
+    lastSendTime = millis();
+
+    // 1. PEMBACAAN JOYSTICK (WASD)
+    int xVal = analogRead(PIN_JOY_X);
+    int yVal = analogRead(PIN_JOY_Y);
+
+    if (yVal < 1000) {
+      SerialBT.print('w');
+    } else if (yVal > 3000) {
+      SerialBT.print('s');
+    }
+
+    if (xVal < 1000) {
+      SerialBT.print('a');
+    } else if (xVal > 3000) {
+      SerialBT.print('d');
+    }
+
+    // 2. TOMBOL JOYSTICK (SPASI / LOMPAT)
+    if (digitalRead(PIN_JOY_SW) == LOW) {
+      SerialBT.print(' ');
+    }
+
+    // 3. PEMBACAAN 4 PUSH BUTTON (1, Q, E, F)
+    if (digitalRead(PIN_BTN_1) == LOW) {
+      SerialBT.print('1');
+    }
+    if (digitalRead(PIN_BTN_Q) == LOW) {
+      SerialBT.print('q');
+    }
+    if (digitalRead(PIN_BTN_E) == LOW) {
+      SerialBT.print('e');
+    }
+    if (digitalRead(PIN_BTN_F) == LOW) {
+      SerialBT.print('f');
+    }
+  }
+}
